@@ -1,0 +1,57 @@
+#!/bin/bash
+
+set -e
+set -o pipefail
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+# Read inputs
+source=$1
+payload=$(mktemp gitlab-commit-request.XXXXXX)
+cat > $payload <&0
+
+# Parse parameters
+baseurl=$(jq -r '.source.baseurl // ""' < $payload)
+project=$(jq -r '.source.project // ""' < $payload)
+accesstoken=$(jq -r '.source.accesstoken // ""' < $payload)
+name=$(jq -r '.source.name // "concourse"' < $payload)
+
+commit_hash=$(jq -r '.params.commit_hash // ""' < $payload)
+status=$(jq -r '.params.status // "pending"' < $payload)
+description=$(jq -r '.params.description // ""' < $payload)
+
+if [ -z "$baseurl" ]; then
+    echo "invalid payload (missing baseurl)"
+    exit 1
+fi
+if [ -z "$project" ]; then
+    echo "invalid payload (missing project)"
+    exit 1
+fi
+if [ -z "$accesstoken" ]; then
+    echo "invalid payload (missing accesstoken)"
+    exit 1
+fi
+if [ -n "$commit_hash" ]; then
+  if [ -f "$source/$commit_hash" ]; then
+    commit=$(cat $source/$commit_hash)
+  else
+    commit=$commit_hash
+  fi
+else
+  echo "invalid payload (missing commit_hash)"
+fi
+
+target_url="&target_url=$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_ID"
+base_status_cmd='curl --request POST --header "PRIVATE-TOKEN: ${accesstoken}" "${baseurl}/api/v4/projects/${project}/statuses/${commit}?state=${status}&pipeline_id=99999&name=${name}${target_url}"'
+
+if [ -n "$description" ]; then
+    status_cmd="$base_status_cmd&description=$description"
+else
+    status_cmd=$base_status_cmd
+fi
+
+echo $status_cmd
+eval $status_cmd
+
