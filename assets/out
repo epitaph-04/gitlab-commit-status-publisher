@@ -19,7 +19,7 @@ name=$(jq -r '.source.name // "concourse"' < $payload)
 
 commit_hash=$(jq -r '.params.commit_hash // ""' < $payload)
 status=$(jq -r '.params.status // "pending"' < $payload)
-description=$(jq -r '.params.description // ""' < $payload)
+description=$(jq -r '.params.description // "status%20from%20concourse"' < $payload)
 
 if [ -z "$baseurl" ]; then
     echo "invalid payload (missing baseurl)"
@@ -43,15 +43,7 @@ else
   echo "invalid payload (missing commit_hash)"
 fi
 
-target_url="&target_url=$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_ID"
-base_status_cmd='curl --request POST --header "PRIVATE-TOKEN: ${accesstoken}" "${baseurl}/api/v4/projects/${project}/statuses/${commit}?state=${status}&pipeline_id=99999&name=${name}${target_url}"'
+echo "commit hash: $commit"
 
-if [ -n "$description" ]; then
-    status_cmd="$base_status_cmd&description=$description"
-else
-    status_cmd=$base_status_cmd
-fi
-
-echo $status_cmd
-eval $status_cmd
-
+target_url="$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_ID"
+curl --request POST --header "PRIVATE-TOKEN: ${accesstoken}" "${baseurl}/api/v4/projects/${project}/statuses/${commit}?state=${status}&pipeline_id=99999&name=${name}&description=$description&target_url=${target_url}"
