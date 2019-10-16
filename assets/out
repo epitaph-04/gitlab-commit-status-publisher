@@ -47,4 +47,15 @@ fi
 echo "commit hash: $commit"
 
 target_url="$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"
-curl --request POST --header "PRIVATE-TOKEN: ${accesstoken}" "${baseurl}/api/v4/projects/${project}/statuses/${commit}?state=${status}&pipeline_id=99999&name=${name}&description=$description&target_url=${target_url}"
+response=$(curl --request POST --header "PRIVATE-TOKEN: ${accesstoken}" "${baseurl}/api/v4/projects/${project}/statuses/${commit}?state=${status}&pipeline_id=99999&name=${name}&description=$description&target_url=${target_url}")
+
+jq -n "{
+  version: {
+    ref: $(jq -r '.sha' < $response)
+  },
+  metadata: {
+    author: $(jq -r '.author.name' < $response),
+    job-id: $(jq -r '.id' < $response),
+    status: $(jq -r '.status' < $response)
+  }
+}" >&3
