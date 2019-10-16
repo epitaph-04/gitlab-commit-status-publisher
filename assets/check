@@ -16,6 +16,6 @@ if [ -z "$sha" ]; then
   echo '[]' >&3
 else
   jq -n "[
-    { sha: \"$sha" }
+    { sha: \"$sha\" }
   ]" >&3
 fi
