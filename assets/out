@@ -54,7 +54,7 @@ curl --request POST --header "PRIVATE-TOKEN: ${accesstoken}" "${baseurl}/api/v4/
 error=$(jq -r '.error // ""' < $response)
 version=$(jq -r '.sha // ""' < $response)
 author=$(jq -r '.author.name // ""' < $response)
-job-id=$(jq -r '.id // ""' < $response)
+job_id=$(jq -r '.id // ""' < $response)
 status=$(jq -r '.status // ""' < $response)
 
 if [ -n "$error" ]; then
