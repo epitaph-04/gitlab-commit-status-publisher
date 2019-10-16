@@ -58,18 +58,20 @@ job_id=$(jq -r '.id // ""' < $response)
 status=$(jq -r '.status // ""' < $response)
 
 if [ -n "$error" ]; then
-  jq -n "{
-    \"version\": { \"ref\": \"$commit\" },
-    \"metadata\": { \"error\": \"$error\" }
-  }" >&3
+  result=jq -n "{
+    version: { sha: \"$commit\" },
+    metadata: [{name: \"error\", value: \"$error\"}]
+  }"
 else
-  jq -n "{ 
-    \"version\": { \"ref\": \"${version}\" },
-    \"metadata\": { 
-      \"author\": \"$author\",
-      \"job_id\": \"$job_id\",
-      \"status\": \"$status\" 
-    }
-  }" >&3
+  result=jq -n "{ 
+    version: { sha: \"${version}\" },
+    metadata: [
+      { name: \"author\", value: \"$author\" },
+      { name: \"job_id\", value: \"$job_id\" },
+      { name: \"status\", value: \"$status\" } 
+    ]
+  }"
 fi
+echo "$result" | jq -s add  >&3
+    
 
