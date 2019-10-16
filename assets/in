@@ -1,3 +1,19 @@
 #!/bin/bash
 
-echo $(jq -n "{ version: { sha: \"\" } }" | jq -s add)
+set -e
+set -o pipefail
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+source=$1
+payload=$(mktemp gitlab-commit-in-request.XXXXXX)
+cat > $payload <&0
+
+sha=$(jq -r '.version.sha // ""' < $payload)
+
+if [ -n "$sha" ]; then
+  echo $(jq -n "{ version: { sha: \"$sha\" } }" | jq -s add) >&3
+else
+  echo $(jq -n "{ version: { sha: \"\" } }" | jq -s add) >&3
+fi
