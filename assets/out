@@ -11,7 +11,7 @@ source=$1
 payload=$(mktemp gitlab-commit-request.XXXXXX)
 cat > $payload <&0
 
-response=$(mktemp gitlab-commit-response)
+response=$(mktemp gitlab-commit-response.XXXXXX)
 
 # Parse parameters
 baseurl=$(jq -r '.source.baseurl // ""' < $payload)
