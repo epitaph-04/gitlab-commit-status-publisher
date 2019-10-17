@@ -15,20 +15,20 @@ response=$(mktemp gitlab-commit-response.XXXXXX)
 
 # Parse parameters
 baseurl=$(jq -r '.source.baseurl // ""' < $payload)
-project=$(jq -r '.source.project // ""' < $payload)
+projectname=$(jq -r '.source.projectname // ""' < $payload)
 accesstoken=$(jq -r '.source.accesstoken // ""' < $payload)
-name=$(jq -r '.source.name // "concourse"' < $payload)
+context=$(jq -r '.source.context // "concourse"' < $payload)
 
 commit_hash=$(jq -r '.params.commit_hash // ""' < $payload)
 status=$(jq -r '.params.status // "pending"' < $payload)
-description=$(jq -r '.params.description // "status%20from%20concourse"' < $payload)
+description=$(jq -r '.params.description // "push%20from%20concourse"' < $payload)
 
 if [ -z "$baseurl" ]; then
     echo "invalid payload (missing baseurl)"
     exit 1
 fi
-if [ -z "$project" ]; then
-    echo "invalid payload (missing project)"
+if [ -z "$projectname" ]; then
+    echo "invalid payload (missing projectname)"
     exit 1
 fi
 if [ -z "$accesstoken" ]; then
@@ -46,10 +46,11 @@ else
   exit 1
 fi
 
-echo "commit hash: $commit"
+project=$(echo $projectname | sed "s/\\//%2F/g")
+urlencodeddescription=$(echo $description | sed "s/ /%20/g")
 
 target_url="$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"
-curl --request POST --header "PRIVATE-TOKEN: ${accesstoken}" "${baseurl}/api/v4/projects/${project}/statuses/${commit}?state=${status}&pipeline_id=99999&name=${name}&description=$description&target_url=${target_url}" > $response <&0
+curl --request POST --header "PRIVATE-TOKEN: ${accesstoken}" "${baseurl}/api/v4/projects/${project}/statuses/${commit}?state=${status}&pipeline_id=99999&name=${context}&description=$urlencodeddescription&target_url=${target_url}" > $response <&0
 
 error=$(jq -r '.error // ""' < $response)
 version=$(jq -r '.sha // ""' < $response)
@@ -63,5 +64,3 @@ else
   result=$(jq -n "{ version: { sha: \"${version}\" }, metadata: [{ name: \"author\", value: \"$author\" }, { name: \"job_id\", value: \"$job_id\" }, { name: \"status\", value: \"$status\" }]}")
 fi
 echo "$result" | jq -s add  >&3
-    
-
