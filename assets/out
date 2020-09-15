@@ -21,7 +21,6 @@ context=$(jq -r '.source.context // "concourse"' < $payload)
 
 
 commit_hash=$(jq -r '.params.commit_hash // ""' < $payload)
-ignore_invalid_payload=$(jq -r '.params.ignore_invalid_payload // false' < $payload)
 status=$(jq -r '.params.status // "pending"' < $payload)
 description=$(jq -r '.params.description // "push%20from%20concourse"' < $payload)
 
@@ -45,8 +44,6 @@ if [ -n "$commit_hash" ]; then
   fi
 else
   echo "invalid payload (missing commit_hash)"
-  if [ $ignore_invalid_payload ]
-    exit 0
   exit 1
 fi
 
