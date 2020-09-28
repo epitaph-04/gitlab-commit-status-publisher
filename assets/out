@@ -47,6 +47,7 @@ else
   echo "invalid payload (missing commit_hash)"
   if [ $ignore_invalid_payload ]
     exit 0
+  fi
   exit 1
 fi
 
